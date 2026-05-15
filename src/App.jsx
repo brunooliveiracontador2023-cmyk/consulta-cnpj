@@ -24,7 +24,7 @@ export default function App() {
       const json = await resposta.json();
 
       if (!resposta.ok) {
-        throw new Error(json?.detalhes || "Erro ao consultar CNPJ.");
+        throw new Error("Erro ao consultar CNPJ.");
       }
 
       setDados(json);
@@ -35,7 +35,24 @@ export default function App() {
     }
   }
 
+  function texto(valor) {
+    return valor || "Não informado";
+  }
+
+  function tipoEmpresa(cnae) {
+    const inicio = Number(String(cnae || "").substring(0, 2));
+
+    if (inicio >= 45 && inicio <= 47) return "Comércio";
+    if (inicio >= 5 && inicio <= 33) return "Indústria";
+    if (inicio >= 49 && inicio <= 99) return "Serviço";
+
+    return "Não identificado";
+  }
+
   const est = dados?.estabelecimento;
+  const cnaePrincipal = est?.atividade_principal;
+  const secundarios = est?.atividades_secundarias || [];
+  const inscricoes = est?.inscricoes_estaduais || [];
 
   return (
     <div style={styles.page}>
@@ -62,21 +79,81 @@ export default function App() {
 
         {dados && (
           <div style={styles.resultado}>
-            <h2>{dados.razao_social}</h2>
+            <h2>{texto(dados.razao_social)}</h2>
 
-            <p><strong>Nome Fantasia:</strong> {est?.nome_fantasia || "Não informado"}</p>
-            <p><strong>Situação:</strong> {est?.situacao_cadastral || "Não informado"}</p>
-            <p><strong>Município:</strong> {est?.cidade?.nome || "Não informado"}</p>
-            <p><strong>UF:</strong> {est?.estado?.sigla || "Não informado"}</p>
-            <p><strong>Telefone:</strong> {est?.telefone1 || "Não informado"}</p>
-            <p><strong>E-mail:</strong> {est?.email || "Não informado"}</p>
-            <p><strong>CNAE Principal:</strong> {est?.atividade_principal?.descricao || "Não informado"}</p>
-            <p><strong>Porte:</strong> {dados.porte?.descricao || "Não informado"}</p>
-            <p><strong>Natureza Jurídica:</strong> {dados.natureza_juridica?.descricao || "Não informado"}</p>
-            <p><strong>Capital Social:</strong> R$ {dados.capital_social || "Não informado"}</p>
+            <div style={styles.grid}>
+              <Info titulo="Nome Fantasia" valor={texto(est?.nome_fantasia)} />
+              <Info titulo="Situação" valor={texto(est?.situacao_cadastral)} />
+              <Info titulo="Tipo da Empresa" valor={tipoEmpresa(cnaePrincipal?.id)} />
+              <Info titulo="Porte" valor={texto(dados.porte?.descricao)} />
+              <Info titulo="Natureza Jurídica" valor={texto(dados.natureza_juridica?.descricao)} />
+              <Info titulo="Capital Social" valor={`R$ ${texto(dados.capital_social)}`} />
+              <Info titulo="Município" valor={texto(est?.cidade?.nome)} />
+              <Info titulo="UF" valor={texto(est?.estado?.sigla)} />
+              <Info titulo="Telefone" valor={texto(est?.telefone1)} />
+              <Info titulo="E-mail" valor={texto(est?.email)} />
+              <Info titulo="Simples Nacional" valor="Não informado pela API pública" />
+              <Info titulo="SIMEI" valor="Não informado pela API pública" />
+            </div>
+
+            <div style={styles.bloco}>
+              <h3>Endereço</h3>
+              <p>
+                {texto(est?.tipo_logradouro)} {texto(est?.logradouro)},{" "}
+                {texto(est?.numero)}
+              </p>
+              <p>
+                Bairro: {texto(est?.bairro)} | CEP: {texto(est?.cep)}
+              </p>
+            </div>
+
+            <div style={styles.bloco}>
+              <h3>CNAE Principal</h3>
+              <p>
+                <strong>{texto(cnaePrincipal?.id)}</strong> -{" "}
+                {texto(cnaePrincipal?.descricao)}
+              </p>
+            </div>
+
+            <div style={styles.bloco}>
+              <h3>CNAEs Secundários</h3>
+              {secundarios.length > 0 ? (
+                secundarios.map((item) => (
+                  <p key={item.id}>
+                    <strong>{item.id}</strong> - {item.descricao}
+                  </p>
+                ))
+              ) : (
+                <p>Não possui CNAEs secundários informados.</p>
+              )}
+            </div>
+
+            <div style={styles.bloco}>
+              <h3>Inscrições Estaduais</h3>
+              {inscricoes.length > 0 ? (
+                inscricoes.map((ie, index) => (
+                  <p key={index}>
+                    <strong>IE:</strong> {texto(ie.inscricao_estadual)} |{" "}
+                    <strong>UF:</strong> {texto(ie.estado?.sigla)} |{" "}
+                    <strong>Situação:</strong> {ie.ativo ? "Ativa" : "Inativa"}
+                  </p>
+                ))
+              ) : (
+                <p>Não foram encontradas inscrições estaduais.</p>
+              )}
+            </div>
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function Info({ titulo, valor }) {
+  return (
+    <div style={styles.info}>
+      <span>{titulo}</span>
+      <strong>{valor}</strong>
     </div>
   );
 }
@@ -87,25 +164,22 @@ const styles = {
     backgroundImage: "url('/zycont.jpg')",
     backgroundSize: "cover",
     backgroundPosition: "center",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 30,
     fontFamily: "Arial",
-    padding: 20,
   },
   card: {
-    background: "#0f172a",
+    maxWidth: 1100,
+    margin: "0 auto",
+    background: "rgba(15, 23, 42, 0.94)",
     color: "white",
-    padding: 40,
+    padding: 35,
     borderRadius: 25,
-    maxWidth: 750,
-    width: "100%",
-    textAlign: "center",
     boxShadow: "0 0 40px rgba(0,0,0,0.5)",
+    textAlign: "center",
   },
   foto: {
-    width: 140,
-    height: 140,
+    width: 130,
+    height: 130,
     borderRadius: "50%",
     objectFit: "cover",
     border: "5px solid #d4af37",
@@ -114,6 +188,7 @@ const styles = {
     display: "flex",
     gap: 12,
     marginTop: 25,
+    marginBottom: 25,
   },
   input: {
     flex: 1,
@@ -123,7 +198,7 @@ const styles = {
     fontSize: 16,
   },
   botao: {
-    padding: "15px 25px",
+    padding: "15px 28px",
     borderRadius: 12,
     border: "none",
     background: "#d4af37",
@@ -135,14 +210,32 @@ const styles = {
     background: "#991b1b",
     padding: 12,
     borderRadius: 10,
-    marginTop: 20,
   },
   resultado: {
     marginTop: 25,
-    background: "#1e293b",
+    background: "rgba(30, 41, 59, 0.95)",
     padding: 25,
-    borderRadius: 15,
+    borderRadius: 18,
     textAlign: "left",
     lineHeight: 1.7,
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+    gap: 12,
+  },
+  info: {
+    background: "#0f172a",
+    padding: 15,
+    borderRadius: 12,
+    display: "flex",
+    flexDirection: "column",
+    gap: 5,
+  },
+  bloco: {
+    background: "#0f172a",
+    padding: 18,
+    borderRadius: 14,
+    marginTop: 18,
   },
 };
