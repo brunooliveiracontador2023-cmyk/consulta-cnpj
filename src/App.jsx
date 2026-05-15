@@ -1,126 +1,148 @@
-import "./App.css";
+import { useState } from "react";
 
-function App() {
+export default function App() {
+  const [cnpj, setCnpj] = useState("");
+  const [dados, setDados] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
+
+  async function consultarCNPJ() {
+    setErro("");
+    setDados(null);
+
+    const numeros = cnpj.replace(/\D/g, "");
+
+    if (numeros.length !== 14) {
+      setErro("Digite um CNPJ válido com 14 números.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const resposta = await fetch(`https://publica.cnpj.ws/cnpj/${numeros}`);
+      const json = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(json?.detalhes || "Erro ao consultar CNPJ.");
+      }
+
+      setDados(json);
+    } catch (error) {
+      setErro(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const est = dados?.estabelecimento;
+
   return (
-    <div style={styles.container}>
-      <img src="/zycont.jpg" alt="Zycont" style={styles.logo} />
+    <div style={styles.page}>
+      <div style={styles.card}>
+        <img src="/bruno.jpg" style={styles.foto} />
 
-      <div style={styles.overlay}>
-        <div style={styles.card}>
-          <img src="/bruno.jpg" alt="Bruno Oliveira" style={styles.photo} />
+        <h1>Consulta de CNPJ</h1>
+        <p>Consulte informações empresariais de forma rápida e segura.</p>
 
-          <h1 style={styles.title}>Consulta de CNPJ</h1>
+        <div style={styles.busca}>
+          <input
+            value={cnpj}
+            onChange={(e) => setCnpj(e.target.value)}
+            placeholder="Digite o CNPJ"
+            style={styles.input}
+          />
 
-          <p style={styles.subtitle}>
-            Consulte informações empresariais de forma rápida e segura.
-          </p>
-
-          <div style={styles.searchArea}>
-            <input
-              type="text"
-              placeholder="Digite o CNPJ"
-              style={styles.input}
-            />
-
-            <button style={styles.button}>Consultar</button>
-          </div>
+          <button onClick={consultarCNPJ} style={styles.botao}>
+            {loading ? "Consultando..." : "Consultar"}
+          </button>
         </div>
+
+        {erro && <p style={styles.erro}>{erro}</p>}
+
+        {dados && (
+          <div style={styles.resultado}>
+            <h2>{dados.razao_social}</h2>
+
+            <p><strong>Nome Fantasia:</strong> {est?.nome_fantasia || "Não informado"}</p>
+            <p><strong>Situação:</strong> {est?.situacao_cadastral || "Não informado"}</p>
+            <p><strong>Município:</strong> {est?.cidade?.nome || "Não informado"}</p>
+            <p><strong>UF:</strong> {est?.estado?.sigla || "Não informado"}</p>
+            <p><strong>Telefone:</strong> {est?.telefone1 || "Não informado"}</p>
+            <p><strong>E-mail:</strong> {est?.email || "Não informado"}</p>
+            <p><strong>CNAE Principal:</strong> {est?.atividade_principal?.descricao || "Não informado"}</p>
+            <p><strong>Porte:</strong> {dados.porte?.descricao || "Não informado"}</p>
+            <p><strong>Natureza Jurídica:</strong> {dados.natureza_juridica?.descricao || "Não informado"}</p>
+            <p><strong>Capital Social:</strong> R$ {dados.capital_social || "Não informado"}</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 const styles = {
-  container: {
-    width: "100%",
+  page: {
     minHeight: "100vh",
     backgroundImage: "url('/zycont.jpg')",
     backgroundSize: "cover",
     backgroundPosition: "center",
     display: "flex",
-    justifyContent: "center",
     alignItems: "center",
-    position: "relative",
+    justifyContent: "center",
     fontFamily: "Arial",
-  },
-
-  overlay: {
-    width: "100%",
-    minHeight: "100vh",
-    backgroundColor: "rgba(0,0,0,0.55)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
     padding: 20,
   },
-
   card: {
-    backgroundColor: "rgba(15, 23, 42, 0.92)",
+    background: "#0f172a",
+    color: "white",
     padding: 40,
-    borderRadius: 24,
+    borderRadius: 25,
+    maxWidth: 750,
     width: "100%",
-    maxWidth: 500,
     textAlign: "center",
-    boxShadow: "0 0 30px rgba(0,0,0,0.4)",
-    border: "1px solid rgba(255,255,255,0.1)",
-    backdropFilter: "blur(10px)",
+    boxShadow: "0 0 40px rgba(0,0,0,0.5)",
   },
-
-  photo: {
+  foto: {
     width: 140,
     height: 140,
     borderRadius: "50%",
     objectFit: "cover",
-    border: "4px solid #d4af37",
-    marginBottom: 20,
+    border: "5px solid #d4af37",
   },
-
-  logo: {
-    position: "absolute",
-    top: 30,
-    left: 30,
-    width: 140,
-  },
-
-  title: {
-    color: "#ffffff",
-    marginBottom: 10,
-    fontSize: 34,
-  },
-
-  subtitle: {
-    color: "#d1d5db",
-    marginBottom: 30,
-    fontSize: 16,
-  },
-
-  searchArea: {
+  busca: {
     display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    justifyContent: "center",
+    gap: 12,
+    marginTop: 25,
   },
-
   input: {
     flex: 1,
-    minWidth: 220,
     padding: 15,
     borderRadius: 12,
     border: "none",
-    outline: "none",
     fontSize: 16,
   },
-
-  button: {
+  botao: {
     padding: "15px 25px",
     borderRadius: 12,
     border: "none",
-    backgroundColor: "#d4af37",
-    color: "#000",
+    background: "#d4af37",
+    color: "#111",
     fontWeight: "bold",
     cursor: "pointer",
-    fontSize: 16,
+  },
+  erro: {
+    background: "#991b1b",
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  resultado: {
+    marginTop: 25,
+    background: "#1e293b",
+    padding: 25,
+    borderRadius: 15,
+    textAlign: "left",
+    lineHeight: 1.7,
   },
 };
-
-export default App;
