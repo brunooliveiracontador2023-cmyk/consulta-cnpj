@@ -112,8 +112,6 @@ export default function App() {
             <Info titulo="UF" valor={texto(est?.estado?.sigla)} />
             <Info titulo="Telefone" valor={texto(est?.telefone1)} />
             <Info titulo="E-mail" valor={texto(est?.email)} />
-            <Info titulo="Simples Nacional" valor="Não informado pela API pública" />
-            <Info titulo="SIMEI" valor="Não informado pela API pública" />
           </div>
 
           <ResultBlock titulo="Endereço">
